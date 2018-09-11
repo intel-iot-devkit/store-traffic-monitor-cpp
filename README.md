@@ -82,7 +82,7 @@ The model can be any object detection model:
    These can be found in the `deployment_tools/model_downloader/object_detection` folder.
 * created by the user
 
-For first-use, we recommend using the ssd300 model provided by the **model downloader**.
+By default this application uses the ssd300 model that can be accesed using the **model downloader**. 
 
 ### What input video to use
 The application works with any input video.
