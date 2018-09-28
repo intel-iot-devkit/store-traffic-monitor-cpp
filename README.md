@@ -1,7 +1,14 @@
 # IoT Reference Implementation: Store Traffic Monitor
+
+| Details            |              |
+|-----------------------|---------------|
+| Target OS:            |  Ubuntu\* 16.04 LTS   |
+| Programming Language: |  C++ |
+| Time to Complete:    |  50-70min     |
+
 ![store-traffic-monitor](docs/images/store-traffic-monitor-image.png)
 
-An application capable of detecting objects on any number of screens.
+An application capable of detecting objects on any number of screens. This reference implementation is also available as [a Python\* example](https://github.com/intel-iot-devkit/store-traffic-monitor).
 
 ## What it Does
 This application is one of a series of IoT reference implementations aimed at instructing users on how to develop a working solution for a particular problem. It demonstrates how to create a smart video IoT solution using Intel® hardware and software tools. This reference implementation monitors people activity inside and outside a facility as well as counts product inventory.
