@@ -30,20 +30,27 @@
 #include <utility>
 #include "opencv2/highgui/highgui.hpp"
 
+#include <ctime>
+#include <chrono>
+
 using namespace std;
 
-static const string conf_targetDevice = "CPU";
+static string conf_targetDevice = "CPU";
 static string conf_modelPath;
 static string conf_binFilePath;
 static string conf_labelsFilePath;
 static const string conf_file = "../resources/conf.txt";
 static const size_t conf_batchSize = 1;
+
+int numVideos = 20000;
+bool loopVideos = false;
 #ifndef UI_OUTPUT
-static const int conf_windowColumns = 5; // OpenCV windows per each row
+static const int conf_windowColumns = 3; // OpenCV windows per each row
 #endif
 
 static const double conf_thresholdValue = 0.145;
 static const int conf_candidateConfidence = 5;
+static std::vector<std::string> acceptedDevices{"CPU", "GPU", "MYRIAD"};
 
 #ifdef UI_OUTPUT
 static const string conf_videoDir = "../../UI/resources/video_frames/";
@@ -79,15 +86,17 @@ public:
 	int candidateCount;
 	int candidateConfidence;
 
+	std::chrono::high_resolution_clock::time_point t1;
+	std::chrono::high_resolution_clock::time_point t2;
+	float fps;
+
 	cv::VideoCapture vc;
 #ifndef UI_OUTPUT
 	cv::VideoWriter vw;
 #endif
 	int frames = 0;
-#ifdef LOOP_VIDEO
 	int loopFrames = 0;
 	bool isCam = false;
-#endif
 
 	const string camName;
 #ifndef UI_OUTPUT
@@ -142,21 +151,19 @@ public:
 		, vc(inputVideo)
 		, camName(camName)
 #ifndef UI_OUTPUT
-		, videoName(camName + ".mp4")
+		, videoName(camName + "_inferred.mp4")
 #endif
 		, labelName(labelName) {
 #ifndef UI_OUTPUT
 			cv::namedWindow(camName);
 #endif
-#ifdef LOOP_VIDEO
 			isCam = true;
-#endif
 		}
 		
 #ifndef UI_OUTPUT
-	int initVW(int height, int width)
+	int initVW(int height, int width, int fps)
 	{
-		vw.open(videoName, conf_fourcc, vc.get(cv::CAP_PROP_FPS), cv::Size(width, height), true);
+		vw.open(videoName, conf_fourcc, fps, cv::Size(width, height), true);
 		if (!vw.isOpened())
 		{
 			return 1;

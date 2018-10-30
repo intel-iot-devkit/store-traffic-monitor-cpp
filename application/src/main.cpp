@@ -47,13 +47,102 @@ using namespace cv;
 using namespace InferenceEngine::details;
 using namespace InferenceEngine;
 
-void getModelPath (ifstream *file)
+void parseEnv()
 {
-	getline(*file, conf_modelPath);
-	getline(*file, conf_binFilePath);
-	getline(*file, conf_labelsFilePath);
+	if (const char* env_d = std::getenv("DEVICE"))
+	{
+		conf_targetDevice = std::string(env_d);
+	}
+
+	if (const char* env_d = std::getenv("NUM_VIDEOS"))
+	{
+		numVideos = std::stoi(std::string(env_d));
+	}
+
+	if (const char* env_d = std::getenv("LOOP"))
+	{
+		if(std::string(env_d) == "true")
+		{
+			loopVideos = true;
+		}
+	}
+
+	// if (const char* env_d = std::getenv("MODEL"))
+	// {
+	// 	conf_modelPath = std::string(env_d);
+	// 	int pos = conf_modelPath.rfind(".");
+	// 	conf_binFilePath = conf_modelPath.substr(0 , pos) + ".bin";
+	// }
+
+	// if (const char* env_d = std::getenv("LABELS"))
+	// {
+	// 	conf_labelsFilePath = std::string(env_d);
+	// }
 }
 
+void parseArgs (int argc, char **argv)
+{
+	for (int i = 1; i < argc; i += 2)
+	{
+		if ("-m" == std::string(argv[i]) || "--model" == std::string(argv[i]))
+		{
+			conf_modelPath = std::string(argv[i + 1]);
+			int pos = conf_modelPath.rfind(".");
+			conf_binFilePath = conf_modelPath.substr(0 , pos) + ".bin";
+		}
+		if ("-l" == std::string(argv[i]) || "--labels" == std::string(argv[i]))
+		{
+			conf_labelsFilePath = std::string(argv[i + 1]);
+		}
+		if ("-d" == std::string(argv[i]) || "--device" == std::string(argv[i]))
+		{
+			conf_targetDevice = std::string(argv[i + 1]);
+		}
+		if ("-n" == std::string(argv[i]) || "--num_videos" == std::string(argv[i]))
+		{
+			numVideos = std::stoi(argv[i + 1]);
+		}
+		if ("-lp" == std::string(argv[i]) || "--loop" == std::string(argv[i]))
+		{
+			if(std::string(argv[i + 1]) == "true")
+			{
+				loopVideos = true;
+			}
+			if(std::string(argv[i + 1]) == "false")
+			{
+				loopVideos = false;
+			}
+		}
+	}
+}
+
+void checkArgs(std::string &defaultDevice)
+{
+	if (conf_modelPath.empty())
+	{
+		std::cout << "You need to specify the path to the .xml file\n";
+		std::cout << "Use -m MODEL or --model MODEL or set the MODEL environment variable\n";
+		exit(11);
+	}
+
+	if (conf_labelsFilePath.empty())
+	{
+		std::cout << "You need to specify the path to the labels file\n";
+		std::cout << "Use -l LABELS or --labels LABELS or set the LABELS environment variable\n";
+		exit(12);
+	}
+
+	if (!(std::find(acceptedDevices.begin(), acceptedDevices.end(), conf_targetDevice) != acceptedDevices.end()))
+	{
+		std::cout << "Unsupported device " << conf_targetDevice << ". Defaulting to " << defaultDevice << std::endl;
+		conf_targetDevice = defaultDevice;
+	}
+	if (numVideos < 1)
+	{
+		std::cout << "Please set NUM_VIDEOS to at least 1\n";
+		exit(13);
+	}
+}
 
 static InferenceEngine::InferenceEnginePluginPtr loadPlugin(
 		TargetDevice myTargetDevice) {
@@ -117,8 +206,9 @@ std::vector<VideoCap> getVideos (std::ifstream *file, size_t width, size_t heigh
 	std::string str;
 	int cams = 0;
 	char camName[20];
+	int cnt = 0;
 
-	while (std::getline(*file, str))
+	while (std::getline(*file, str) && cnt < numVideos)
 	{
 		int delim = str.rfind(' ');
 		++cams;
@@ -133,8 +223,23 @@ std::vector<VideoCap> getVideos (std::ifstream *file, size_t width, size_t heigh
 			videos.push_back(VideoCap(width, height,  path, camName, str.substr(delim + 1)));
 		}
 		(*reqLabels).push_back(str.substr(delim + 1));
+		++cnt;
 	}
 	return videos;
+}
+
+int get_minFPS(std::vector<VideoCap> &vidCaps)
+{
+	int minFPS = 240;
+
+	
+	for(auto&& i : vidCaps)
+	{
+		minFPS = std::min(minFPS, (int)round(i.vc.get(CAP_PROP_FPS)));
+	}
+	
+
+	return minFPS;
 }
 
 #ifdef UI_OUTPUT
@@ -300,6 +405,11 @@ int saveJSON (vector<VideoCap> &vidCaps)
 #endif
 
 int main(int argc, char **argv) {
+	std::string defaultDevice = conf_targetDevice;
+	
+	parseEnv();
+	parseArgs(argc, argv);
+	checkArgs(defaultDevice);
 
 	std::ifstream confFile(conf_file);
 	if (!confFile.is_open())
@@ -307,14 +417,11 @@ int main(int argc, char **argv) {
 		cout << "Could not open config file" << endl;
 		return 2;
 	}
-	getModelPath(&confFile);
 
 	/**
 	 * Inference engine initialization
 	 */
-	TargetDevice myTargetDevice =
-			(conf_targetDevice == "GPU") ?
-					TargetDevice::eGPU : TargetDevice::eCPU;
+	TargetDevice myTargetDevice = TargetDeviceInfo::fromStr(conf_targetDevice);
 
 	// NOTE: Load plugin first.
 	InferenceEngine::InferenceEnginePluginPtr p_plugin = loadPlugin(
@@ -415,14 +522,16 @@ int main(int argc, char **argv) {
 
 	const size_t input_width = vidCaps[0].vc.get(CV_CAP_PROP_FRAME_WIDTH);
 	const size_t input_height = vidCaps[0].vc.get(CV_CAP_PROP_FRAME_HEIGHT);
-	const size_t output_width = inputDims[1];
-	const size_t output_height = inputDims[0];
-	
+	const size_t output_width = inputDims[0];
+	const size_t output_height = inputDims[1];
+
+	int minFPS = get_minFPS(vidCaps);
+	int waitTime = (int)(round(1000 / minFPS / vidCaps.size()));
 #ifndef UI_OUTPUT
 	/* Create video writer for every input source */
 	for (auto &vidCapObj : vidCaps)
 	{
-		if(vidCapObj.initVW(output_height, output_width))
+		if(vidCapObj.initVW(output_height, output_width, minFPS))
 		{
 			cout << "Could not open " << vidCapObj.videoName << " for writing\n";
 			return 4;
@@ -431,7 +540,7 @@ int main(int argc, char **argv) {
 
 	namedWindow("Statistics", CV_WINDOW_AUTOSIZE);
 
-	arrangeWindows(&vidCaps, output_width, output_height);
+	arrangeWindows(&vidCaps, output_width, output_height + 4);
 	Mat stats;
 #endif
 
@@ -447,7 +556,7 @@ int main(int argc, char **argv) {
 	std::vector<bool> usedLabels = getUsedLabels(vidCaps, &reqLabels);
 	if (usedLabels.empty()) {
 		std::cout
-				<< "Error: No labels currently in use. Please edit videocap.hpp file"
+				<< "Error: No labels currently in use. Please check your path."
 				<< std::endl;
 		return 1;
 	}
@@ -459,6 +568,11 @@ int main(int argc, char **argv) {
 	int rollingLogSize = (output_height - 15) / 20;
 #endif
 
+	for (auto &vidCapObj : vidCaps)
+	{
+		vidCapObj.t1 = std::chrono::high_resolution_clock::now();
+	}
+
 	/* Main loop starts here. */
 	for (;;) {
 		for (auto &vidCapObj : vidCaps) {
@@ -469,7 +583,12 @@ int main(int argc, char **argv) {
 				//---------------------------
 				// get a new frame
 				//---------------------------
-				vidCapObj.vc.read(frame);
+				int vfps = (int)round(vidCapObj.vc.get(CAP_PROP_FPS));
+				for (int i = 0; i < round(vfps / minFPS); ++i)
+				{
+					vidCapObj.vc.read(frame);
+					vidCapObj.loopFrames++;					
+				}
 
 				if (!frame.data) {
 					no_more_data = true;
@@ -521,12 +640,15 @@ int main(int argc, char **argv) {
 			//---------------------------
 			// INFER STAGE
 			//---------------------------
+			std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 			sts = p_plugin->Infer(inputBlobs, outputBlobs, &dsc);
 			if (sts != 0) {
 				std::cout << "An infer error occurred: " << dsc.msg
 						<< std::endl;
 				return 1;
 			}
+			std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<float> infer_time = std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1);
 			//---------------------------
 			// POSTPROCESS STAGE:
 			// parse output
@@ -667,8 +789,22 @@ int main(int argc, char **argv) {
 				s << "Current " << vidCapObj.labelName << " count: " <<vidCapObj.lastCorrectCount;
 				cv::putText(output_frames[mb], s.str(), cv::Point(10, output_height - 30), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, 8, false);
 
+				// Get app FPS
+				vidCapObj.t2 = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<float> time_span = std::chrono::duration_cast<std::chrono::duration<float>>(vidCapObj.t2 - vidCapObj.t1);
+				char vid_fps[20];
+				sprintf(vid_fps, "FPS: %.2f", 1 / time_span.count());
+				cv::putText(output_frames[mb], string(vid_fps), cv::Point(10, output_height - 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, 8, false);
+
+				// Print infer time
+				char infTm[20];
+				sprintf(infTm, "Infer time: %.2f", infer_time.count());
+				cv::putText(output_frames[mb], string(infTm), cv::Point(10, output_height - 70), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, 8, false);
+
 				// Show current frame and update statistics window
 				cv::imshow(vidCapObj.camName, output_frames[mb]);
+
+				vidCapObj.t1 = std::chrono::high_resolution_clock::now();
 
 				stats = Mat(output_height > (vidCaps.size() * 20 + 15) ? output_height : (vidCaps.size() * 20 + 15), output_width > 345 ? output_width : 345, CV_8UC1, Scalar(0));
 
@@ -688,7 +824,7 @@ int main(int argc, char **argv) {
 				 * the application will wait for next frame on capture.
 				 * You can use vidCaps[0].vc.get(cv::CAP_PROP_FPS) to use the FPS of the 1st video.
 				 */
-				if (waitKey(1) == 27)
+				if (waitKey(waitTime) == 27)
 				{
 					saveJSON(vidCaps);
 					delete[] output_frames;
@@ -696,17 +832,15 @@ int main(int argc, char **argv) {
 					return 0;
 				}
 #endif
-#ifdef LOOP_VIDEO
-				if (!vidCapObj.isCam)
+				if (loopVideos && !vidCapObj.isCam)
 				{
-					vidCapObj.loopFrames++;
-					if (vidCapObj.loopFrames == vidCapObj.vc.get(CV_CAP_PROP_FRAME_COUNT))
+					int vfps = (int)round(vidCapObj.vc.get(CAP_PROP_FPS));
+					if (vidCapObj.loopFrames > vidCapObj.vc.get(CV_CAP_PROP_FRAME_COUNT) - round(vfps / minFPS))
 					{
 						vidCapObj.loopFrames = 0;
 						vidCapObj.vc.set(CV_CAP_PROP_POS_FRAMES, 0);
 					}
 				}
-#endif
 
 			}
 		}
