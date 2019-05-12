@@ -48,7 +48,7 @@ static const int conf_windowColumns = 3; // OpenCV windows per each row
 
 static const double conf_thresholdValue = 0.145;
 static const int conf_candidateConfidence = 6;
-static std::vector<std::string> acceptedDevices{"CPU", "GPU", "MYRIAD", "HETERO:FPGA,CPU"};
+static std::vector<std::string> acceptedDevices{"CPU", "GPU", "MYRIAD", "HETERO:FPGA,CPU", "HETERO:HDDL,CPU"};
 
 #ifdef UI_OUTPUT
 static const string conf_videoDir = "../../UI/resources/video_frames/";

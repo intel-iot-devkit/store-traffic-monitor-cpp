@@ -84,7 +84,7 @@ void parseArgs (int argc, char **argv)
 		std::cout << argv[0] << " -m MODEL -l LABELS [OPTIONS]\n\n"
 					"-m, --model	Path to .xml file containing model layers\n"
 					"-l, --labels	Path to labels file\n"
-					"-d, --device	Device to run the inference (CPU, GPU or MYRIAD only). Default option is CPU\n"
+					"-d, --device	Device to run the inference (CPU, GPU, MYRIAD, FPGA or HDDL only). Default option is CPU\n"
 					"-lp, --loop	Loop video to mimic continuous input\n";
 		exit(0);
 
@@ -552,7 +552,7 @@ int main(int argc, char **argv) {
 	// Create video writer for every input source 
 	for (auto &vidCapObj : vidCaps)
 	{
-		if(vidCapObj.initVW(output_height, output_width, minFPS))
+		if(!vidCapObj.initVW(output_height, output_width, minFPS))
 		{
 			cout << "Could not open " << vidCapObj.videoName << " for writing\n";
 			return 4;
