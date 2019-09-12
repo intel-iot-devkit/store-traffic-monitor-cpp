@@ -8,18 +8,10 @@
 
 ![store-traffic-monitor](docs/images/store-traffic-monitor-image.png)
 
-**Figure 1:** An application capable of detecting objects on any number of screens.
 
 ## What It Does
 
-This application is one of a series of IoT reference implementations illustrating how to develop a working solution for a problem. The reference implementation demonstrates how to create a smart video IoT solution using Intel® hardware and software tools. This application monitors the activity of people inside and outside a facility, and it counts product inventory.
-
-## How It Works
-
-The application uses the Inference Engine included in the Intel® Distribution of OpenVINO™ toolkit. A trained neural network detects objects by displaying a green bounding box over them. This reference implementation identifies multiple objects entering the frame and records the class of each object, the count, and the time the object entered the frame.
-![Architectural Diagram](docs/images/arch.png)
-
-**Figure 2:** Architectural Diagram.
+The store traffic monitor reference implementation gives the total number of people currently present and total number of people visited the facility. It also counts the product inventory. The application is capable of processing the inputs from multiple cameras and video files.
 
 ## Requirements
 
@@ -37,74 +29,53 @@ The application uses the Inference Engine included in the Intel® Distribution o
 
 - OpenCL™ Runtime Package
 
-- Intel® Distribution of OpenVINO™ toolkit 2019 R1 Release
+- Intel® Distribution of OpenVINO™ toolkit 2019 R2 Release
+
+## How It Works
+
+The application uses the Inference Engine included in the Intel® Distribution of OpenVINO™ toolkit. A trained neural network detects objects by displaying a green bounding box over them. This reference implementation identifies multiple objects entering the frame and records the class of each object, the count, and the time the object entered the frame.
+![Architectural Diagram](docs/images/arch.png)
+
+**Figure 2:** Architectural Diagram.
+
+
 
 ## Setup
+### Get the code
+Clone the reference implementation
+```
+sudo apt-get update && sudo apt-get install git
+git clone https://github.com/intel-iot-devkit/store-traffic-monitor-cpp.git
+```
 
-### Install Intel® Distribution of OpenVINO™ toolkit
+### Install OpenVINO
 
 Refer to [Install Intel® Distribution of OpenVINO™ toolkit for Linux*](https://software.intel.com/en-us/articles/OpenVINO-Install-Linux) to learn how to install and configure the toolkit.
 
 Install the OpenCL™ Runtime Package to run inference on the GPU, as shown in the instructions below. It is not mandatory for CPU inference.
 
-### Install FFmpeg*
 
-FFmpeg* is installed separately from the Ubuntu repositories:
+### Other Dependencies
+**FFmpeg***<br>
+FFmpeg is a free and open-source project capable of recording, converting and streaming digital audio and video in various formats. It can be used to do most of our multimedia tasks quickly and easily say, audio compression, audio/video format conversion, extract images from a video and a lot more.
 
-```
-sudo apt update
-sudo apt install ffmpeg
-```
 
-## Configure the Application
+
 
 ### Which Model to Use
 
-The application works with any object-detection model, provided it has the same input and output format of the SSD model.
+This application uses the [mobilenet-ssd](https://github.com/chuanqi305/MobileNet-SSD) model, that can be accessed using the **model downloader**. The **model downloader** downloads the model as Caffe* model files. These need to be passed through the **model optimizer** to generate the IR (the __.xml__ and __.bin__ files) that will be used by the application.
+
+The application also works with any object-detection model, provided it has the same input and output format of the SSD model.
 The model can be any object detection model:
 - Downloaded using the **model downloader**, provided by Intel® Distribution of OpenVINO™ toolkit.
 
 - Built by the user.<br>
 
-By default, this application uses the mobilenet-ssd model, that can be accessed using the **model downloader**. The **model downloader** downloads the model as Caffe* model files. These need to be passed through the **model optimizer** to generate the IR (the __.xml__ and __.bin__ files) that will be used by the application.
-
-#### Download the mobilenet-ssd Intel® Model
-
-- Go to the **model downloader** directory present inside Intel® Distribution of OpenVINO™ toolkit install directory:
-
-  ```
-  cd /opt/intel/openvino/deployment_tools/tools/model_downloader/
-  ```
-
-- Specify which model to download with `--name` and the output path with `-o`; otherwise, the model will be downloaded to the current folder. Run the model downloader with the following command:
-
-  ```
-  sudo ./downloader.py --name mobilenet-ssd
-  ```
-
-  The model will be downloaded inside the _object_detection/common_ directory. To make it work with the Intel® Distribution of OpenVINO™ toolkit, the model needs to be passed through the **model optimizer** to generate the IR (the __.xml__ and __.bin__ files).
-
-  **Note:** If you haven't configured the **model optimizer** yet, follow the instructions to configure it provided [here](https://software.intel.com/en-us/articles/OpenVINO-ModelOptimizer).
-
-- After configuring the model optimizer, go to the **model optimizer** directory:
-
-  ```
-  cd /opt/intel/openvino/deployment_tools/model_optimizer/
-  ```
-
-- Run this command to optimize mobilenet-ssd:
-
-  ```
-  ./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel  -o $HOME/store-traffic-monitor/application/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127]
-  ```
-
-  **Note:** Replace `$HOME` in the above command with the path to the reference-implementation's folder.
-
-- To optimize the model for FP16:
-
-  ```
-  ./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel -o $HOME/store-traffic-monitor/application/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
-  ```
+To download the models and install the dependencies of the application, run the below command in the `store-traffic-monitor-cpp` directory:
+```
+./setup.sh
+```
 
 ### The Labels File
 
@@ -114,48 +85,60 @@ The application requires a _labels_ file associated with the model used for dete
 
 The _labels_ file is a text file containing all the classes/labels that the model can recognize, in the order that it was trained to recognize them, one class per line.<br>
 
-For mobilenet-ssd model, _labels.txt_ file is provided in the _application/resources_ directory.
+For mobilenet-ssd model, _labels.txt_ file is provided in the _resources_ directory.
 
 ### The Config File
 
-The _application/resources/conf.txt_ contains the videos that will be used by the application as input. Each line, formatted as `path/to/video label`,  represents one video and its path location on a local system.
+The _resources/config.json_ contains the path of videos and label that will be used by the application as input. Each block represents one video file and its corresponding label for detection.
 
 For example:
+   ```
+   {
+       "inputs": [
+          {
+              "video":"path_to_video/video1.mp4",
+              "label":"person"
+          }
+       ]
+   }
+   ```
 
-```
-videos/video1.mp4 person
-```
+The `path/to/video` is the path to an input video file and the `label` of the class (e.g., person, bottle) to be detected on that video. The labels used in the _config.json_ file must coincide with the labels from the _labels_ file.
 
-The `path/to/video` is the path to an input video file followed by the `label` of the class (e.g., person, bottle) to be detected on that video. The labels used in the _conf.txt_ file must coincide with the labels from the _labels_ file.
+The application can use any number of videos for detection (i.e., the _config.json_ file can have any number of blocks), but the more videos the application uses in parallel, the more the frame rate of each video scales down. This can be solved by adding more computation power to the machine on which the application is running.
 
-The application can use any number of videos for detection (i.e., the _conf.txt_ file can have any number of lines), but the more videos the application uses in parallel, the more the frame rate of each video scales down. This can be solved by adding more computation power to the machine on which the application is running.
+### Which Input Video to use
 
-### Use an Input Video File
-
-The application works with any input video. Find sample videos for object detection [here](https://github.com/intel-iot-devkit/sample-videos/).
+The application works with any input video. Sample videos are provided [here](https://github.com/intel-iot-devkit/sample-videos/).
 
 For first-use, we recommend using the [people-detection](https://github.com/intel-iot-devkit/sample-videos/blob/master/people-detection.mp4), [one-by-one-person-detection](https://github.com/intel-iot-devkit/sample-videos/blob/master/one-by-one-person-detection.mp4), [bottle-detection](https://github.com/intel-iot-devkit/sample-videos/blob/master/bottle-detection.mp4) videos.
 For example:
 
 ```
-sample-videos/people-detection.mp4 person
-sample-videos/one-by-one-person-detection.mp4 person
-sample-videos/bottle-detection.mp4 bottle
+{
+   "inputs":[
+      {
+         "video":"sample-videos/people-detection.mp4",
+         "label":"person"
+      },
+      {
+         "video":"sample-videos/one-by-one-person-detection.mp4",
+         "label":"person"
+      },
+      {
+         "video":"sample-videos/bottle-detection.mp4",
+         "label":"bottle"
+      }
+   ]
+}
 ```
 
-These videos can be downloaded directly, via the `video_downloader` python script provided.<br>
+If the user wants to use any other video, it can be used by providing the path in the config.json file.
 
-Go to store-traffic-monitor in the terminal and run the following command:
 
-```
-python3 video_downloader.py
-```
+### Using the Camera Stream instead of video
 
-The videos are automatically downloaded to the `application/resources/` folder.
-
-### Use a Camera Stream
-
-Replace `path/to/video` with the camera ID in the conf.txt file, where the ID is taken from the video device (the number X in /dev/videoX).
+Replace `path/to/video` with the camera ID in the config.json file, where the ID is taken from the video device (the number X in /dev/videoX).
 
 On Ubuntu, to list all available video devices use the following command:
 
@@ -163,13 +146,20 @@ On Ubuntu, to list all available video devices use the following command:
 ls /dev/video*
 ```
 
-For example, if the output of above command is __/dev/video0__, then conf.txt would be:
+For example, if the output of above command is __/dev/video0__, then config.json would be:
 
 ```
-0 person
+  {
+     "inputs": [
+        {
+           "video":"0",
+           "label":"person"
+        }
+     ]
+   }
 ```
 
-## Set Up the Environment
+### Setup the Environment
 
 Configure the environment to use the Intel® Distribution of OpenVINO™ toolkit by exporting environment variables:
 
@@ -179,7 +169,9 @@ source /opt/intel/openvino/bin/setupvars.sh
 
 __Note__: This command needs to be executed only once in the terminal where the application will be executed. If the terminal is closed, the command needs to be executed again.
 
-To build, go to the `application` directory present in store-traffic-monitor and run the following commands:
+### Build the Application
+
+To build, go to the `store-traffic-monitor-cpp` and run the following commands:
 
 ```
 mkdir -p build && cd build
@@ -195,7 +187,8 @@ To see a list of the various options:
 ./store-traffic-monitor -h
 ```
 
-A user can specify what target device to run on by using the device command-line argument `-d`.
+A user can specify what target device to run on by using the device command-line argument `-d` followed by one of the devices _CPU_, _GPU_, _HDDL_ or _MYRIAD_. If no target device is specified the application will run on the CPU by default.
+To run with multiple devices use _-d MULTI:device1,device2_. For example: _-d MULTI:CPU,GPU,MYRIAD_
 
 ### Run on the CPU
 
@@ -204,18 +197,21 @@ Although the application runs on the CPU by default, this can also be explicitly
 ```
 ./store-traffic-monitor -d CPU -m ../resources/FP32/mobilenet-ssd.xml -l ../resources/labels.txt
 ```
+**Note:** By default, the application runs on async mode. To run the application on sync mode, use `-f sync` as command-line argument.
 
 ### Run on the Integrated GPU
-
-- To GPU in 32-bit mode, use the following command:
+- To run on the integrated Intel® GPU with floating point precision 32 (FP32), use the `-d GPU` command-line argument:
 
     ```
     ./store-traffic-monitor -d GPU -m ../resources/FP32/mobilenet-ssd.xml -l ../resources/labels.txt
     ```
-- To GPU in 16-bit mode, use the following command:
+    **FP32**: FP32 is single-precision floating-point arithmetic uses 32 bits to represent numbers. 8 bits for the magnitude and 23 bits for the precision. For more information, [click here](https://en.wikipedia.org/wiki/Single-precision_floating-point_format)<br>
+
+- To run on the integrated Intel® GPU with floating point precision 16 (FP16), use the following command:
     ```
     ./store-traffic-monitor -d GPU -m ../resources/FP16/mobilenet-ssd.xml -l ../resources/labels.txt
     ```
+    **FP16**: FP16 is half-precision floating-point arithmetic uses 16 bits. 5 bits for the magnitude and 10 bits for the precision. For more information, [click here](https://en.wikipedia.org/wiki/Half-precision_floating-point_format)
 
 ### Run on the Intel® Neural Compute Stick
 
@@ -227,15 +223,15 @@ To run on the Intel® Neural Compute Stick, use the `-d MYRIAD` command-line arg
 
 **Note:** The Intel® Neural Compute Stick can only run FP16 models. The model that is passed to the application, through the `-m <path_to_model>` command-line argument, must be of data type FP16.
 
-### Run on the HDDL
-To run on the HDDL, use the `-d HETERO:HDDL,CPU ` command-line argument:
+### Run on the Intel® Movidius™ VPU
+To run on the Intel® Movidius™ VPU, use the `-d HDDL ` command-line argument:
 
 ```
-./store-traffic-monitor -d HETERO:HDDL,CPU -m ../resources/FP16/mobilenet-ssd.xml -l ../resources/labels.txt
+./store-traffic-monitor -d HDDL -m ../resources/FP16/mobilenet-ssd.xml -l ../resources/labels.txt
 ```
 **Note:** The HDDL-R can only run FP16 models. The model that is passed to the application, through the `-m <path_to_model>` command-line argument, must be of data type FP16.
 
-
+<!--
 ### Run on the FPGA
 
 Before running the application on the FPGA, program the AOCX (bitstream) file.<br>
@@ -260,7 +256,7 @@ To run the application on the FPGA , use the `-d HETERO:FPGA,CPU` command-line a
 ```
 ./store-traffic-monitor -d HETERO:FPGA,CPU -m ../resources/FP16/mobilenet-ssd.xml -l ../resources/labels.txt
 ```
-
+-->
 ### Loop the Input Video
 
 By default, the application reads the input videos only once and ends when the videos end.

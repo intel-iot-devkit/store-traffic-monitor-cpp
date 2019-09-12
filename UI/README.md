@@ -7,7 +7,7 @@ The output of the Store-traffic-monitor reference implementation is read and dis
 ## Running the UI
 Go to UI directory present in store-traffic-monitor.
 ```
-cd UI
+cd <path-to-store-traffic-monitor>/UI
 ```
 
 ### Install the dependencies

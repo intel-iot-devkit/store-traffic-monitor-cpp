@@ -37,7 +37,7 @@ static string conf_targetDevice;
 static string conf_modelPath;
 static string conf_binFilePath;
 static string conf_labelsFilePath;
-static const string conf_file = "../resources/conf.txt";
+static const string conf_file = "../resources/config.json";
 static const size_t conf_batchSize = 1;
 
 int numVideos = 20000;
@@ -48,12 +48,12 @@ static const int conf_windowColumns = 3; // OpenCV windows per each row
 
 static const double conf_thresholdValue = 0.145;
 static const int conf_candidateConfidence = 6;
-static std::vector<std::string> acceptedDevices{"CPU", "GPU", "MYRIAD", "HETERO:FPGA,CPU", "HETERO:HDDL,CPU"};
+static std::vector<std::string> acceptedDevices{"CPU", "GPU", "MYRIAD", "HETERO:FPGA,CPU", "HDDL"};
 
 #ifdef UI_OUTPUT
-static const string conf_videoDir = "../../UI/resources/video_frames/";
-static const string conf_dataJSON_file = "../../UI/resources/video_data/data.json";
-static const string conf_videJSON_file = "../../UI/resources/video_data/videolist.json";
+static const string conf_videoDir = "../UI/resources/video_frames/";
+static const string conf_dataJSON_file = "../UI/resources/video_data/data.json";
+static const string conf_videJSON_file = "../UI/resources/video_data/videolist.json";
 #else
 static const int conf_fourcc = 0x00000021; 
 static const string conf_dataJSON_file = "data.json";
@@ -75,7 +75,7 @@ public:
 
 	string labelName;
 	int label;
-
+	cv::Mat frame;
 	int lastCorrectCount;
 	int totalCount;
 	int currentCount;
@@ -121,6 +121,7 @@ public:
 		, currentCount(0)
 		, changedCount(0)
 		, candidateCount(0)
+		, frame()
 		, candidateConfidence(0)
 		, vc(inputVideo.c_str())
 		, camName(camName)
