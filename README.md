@@ -2,7 +2,7 @@
 
 | Details               |                    |
 | --------------------- | ------------------ |
-| Target OS:            | Ubuntu\* 16.04 LTS |
+| Target OS:            | Ubuntu\* 18.04 LTS |
 | Programming Language: | C++                |
 | Time to Complete:     | 50-70min           |
 
@@ -21,7 +21,7 @@ The store traffic monitor reference implementation gives the total number of peo
 
 ### Software
 
-- [Ubuntu\* 16.04 LTS](http://releases.ubuntu.com/16.04/)<br>
+- [Ubuntu\* 18.04 LTS](http://releases.ubuntu.com/18.04/)<br>
   **Note**: We recommend using a 4.14+ Linux* kernel with this software. Run the following command to determine the kernel version:<br>
      ```
      uname -a
@@ -29,7 +29,7 @@ The store traffic monitor reference implementation gives the total number of peo
 
 - OpenCL™ Runtime Package
 
-- Intel® Distribution of OpenVINO™ toolkit 2019 R2 Release
+- Intel® Distribution of OpenVINO™ toolkit 2020 R3 Release
 
 ## How It Works
 

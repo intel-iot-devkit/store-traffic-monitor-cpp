@@ -28,10 +28,12 @@
 #include <utility>
 #include "opencv2/highgui/highgui.hpp"
 
+
 #include <ctime>
 #include <chrono>
 
 using namespace std;
+using namespace cv;
 
 static string conf_targetDevice;
 static string conf_modelPath;
@@ -55,7 +57,7 @@ static const string conf_videoDir = "../UI/resources/video_frames/";
 static const string conf_dataJSON_file = "../UI/resources/video_data/data.json";
 static const string conf_videJSON_file = "../UI/resources/video_data/videolist.json";
 #else
-static const int conf_fourcc = 0x00000021; 
+//static const int conf_fourcc = 0x00000021; 
 static const string conf_dataJSON_file = "data.json";
 #endif
 
@@ -172,7 +174,7 @@ public:
 #ifndef UI_OUTPUT
 	int initVW(int height, int width, int fps)
 	{
-		vw.open(videoName, conf_fourcc, fps, cv::Size(width, height), true);
+		vw.open(videoName, VideoWriter::fourcc('m','p','4','v'), fps, cv::Size(width, height), true);
 		if (!vw.isOpened())
 		{
 			return 1;

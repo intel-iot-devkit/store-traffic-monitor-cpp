@@ -42,6 +42,6 @@ wget -O bottle-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/r
 cd /opt/intel/openvino/deployment_tools/tools/model_downloader/
 sudo ./downloader.py --name mobilenet-ssd                          # Downloading the Mobile-net ssd model
 cd /opt/intel/openvino/deployment_tools/model_optimizer/           # Converting the Caffe model to IR model
-./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel  -o $BASEDIR/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127]
-./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel -o $BASEDIR/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
+./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o $BASEDIR/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127]
+./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel -o $BASEDIR/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
 

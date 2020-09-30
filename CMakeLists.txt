@@ -51,7 +51,8 @@ include_directories(application/include)
 include_directories(json/single_include)
 include_directories(/opt/intel/openvino/deployment_tools/open_model_zoo/demos/common)
 add_executable(store-traffic-monitor application/src/main.cpp)
-add_dependencies(store-traffic-monitor IE::ie_cpu_extension)
-target_link_libraries(store-traffic-monitor pthread rt dl ${OpenCV_LIBRARIES} IE::ie_cpu_extension ${InferenceEngine_LIBRARIES})
+
+#add_dependencies(store-traffic-monitor IE::ie_cpu_extension)
+target_link_libraries(store-traffic-monitor pthread rt dl ${OpenCV_LIBRARIES} ${InferenceEngine_LIBRARIES})
 
 

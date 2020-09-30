@@ -29,13 +29,13 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/video/video.hpp"
 #include <ie_icnn_net_reader.h>
-#include <ie_device.hpp>
+//#include <ie_device.hpp>
 #include <ie_plugin_config.hpp>
 #include <ie_plugin_dispatcher.hpp>
 #include <ie_plugin_ptr.hpp>
 #include <inference_engine.hpp>
-#include <ie_extension.h>
-#include <ext_list.hpp>
+//#include <ie_extension.h>
+//#include <ext_list.hpp>
 #include <samples/ocv_common.hpp>
 #include <samples/slog.hpp>
 #include <nlohmann/json.hpp>
@@ -160,7 +160,7 @@ void checkArgs()
 		exit(13);
 	}
 }
-
+/*
 static void configureNetwork(InferenceEngine::CNNNetReader &network) {
 	try {
 		network.ReadNetwork(conf_modelPath);
@@ -173,7 +173,7 @@ static void configureNetwork(InferenceEngine::CNNNetReader &network) {
 	// Set batch size
 	network.getNetwork().setBatchSize(conf_batchSize);
 }
-
+*/
 // Read the model's label file and get the position of labels required by the application
 static std::vector<bool> getUsedLabels(std::vector<VideoCap> &vidCaps, std::vector<string> *reqLabels) {
 	std::vector<bool> usedLabels;
@@ -271,7 +271,7 @@ int saveJSON (vector<VideoCap> &vidCaps, vector<string> frameNames)
 
 	int i = 0;
 	int j;
-	char str[50];
+	char str[100];
 	dataJSON << "{\n";
 	videoJSON << "{\n";
 	int vsz = static_cast<int>(vidCaps.size());
@@ -373,7 +373,7 @@ int saveJSON (vector<VideoCap> &vidCaps)
 
 	int i = 0;
 	int j;
-	char str[10];
+	char str[100];
 	dataJSON << "{\n";
 	int vsz = static_cast<int>(vidCaps.size());
 	int fsz;
@@ -429,24 +429,24 @@ int main(int argc, char **argv)
 
 	// Load the IE plugin for the target device
 	Core ie;
-	InferenceEngine::CNNNetReader network;
+	auto network = ie.ReadNetwork(conf_modelPath);
 
-	// Configure the network
-	configureNetwork(network);
+        network.setBatchSize(conf_batchSize);
+/*
 	if ((conf_targetDevice.find("CPU") != std::string::npos))
 	{
 		// Required for support of certain layers in CPU
 		ie.AddExtension(std::make_shared<Extensions::Cpu::CpuExtensions>(), "CPU");
 	}
-
-	InputsDataMap inputInfo(network.getNetwork().getInputsInfo());
+*/
+	InputsDataMap inputInfo(network.getInputsInfo());
 
 	std::string imageInputName, imageInfoInputName;
 	size_t netInputHeight, netInputWidth, netInputChannel;
 
 	for (const auto &inputInfoItem : inputInfo)
 	{
-		if (inputInfoItem.second->getTensorDesc().getDims().size() ==4)
+		if (inputInfoItem.second->getInputData()->getTensorDesc().getDims().size() ==4)
 		{ // first input contains images
 			imageInputName = inputInfoItem.first;
 			inputInfoItem.second->setPrecision(Precision::U8);
@@ -473,13 +473,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	OutputsDataMap outputInfo(network.getNetwork().getOutputsInfo());
+	OutputsDataMap outputInfo(network.getOutputsInfo());
 	if (outputInfo.size() != 1) {
 		throw std::logic_error("This demo accepts networks having only one output");
 	}
 	DataPtr &output = outputInfo.begin()->second;
 	auto outputName = outputInfo.begin()->first;
-	const int num_classes = network.getNetwork().getLayerByName(outputName.c_str())->GetParamAsInt("num_classes");
+	//const int num_classes = network.getNetwork().getLayerByName(outputName.c_str())->GetParamAsInt("num_classes");
 	const SizeVector outputDims = output->getTensorDesc().getDims();
 	const int maxProposalCount = outputDims[2];
 
@@ -498,7 +498,7 @@ int main(int argc, char **argv)
 	// --------------------------- 4. Loading model to the device
 	// -----------------------------------------------------------------------------------------------------
 	slog::info << "Loading model to the device" << slog::endl;
-	ExecutableNetwork net =	ie.LoadNetwork(network.getNetwork(), conf_targetDevice);
+	ExecutableNetwork net =	ie.LoadNetwork(network, conf_targetDevice);
 	// -----------------------------------------------------------------------------------------------------
 
 	// --------------------------- 5. Create infer request
@@ -810,7 +810,7 @@ int main(int argc, char **argv)
 					FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, 8, false);
 
 				// Print infer time
-				char infTm[20];
+				char infTm[100];
 				if (!isAsyncMode) {
 					sprintf(infTm, "Infer time: %.3f", infer_time.count());
 				} else {
